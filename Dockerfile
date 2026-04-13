@@ -7,6 +7,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN mkdir -p public
 RUN npx --yes prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
