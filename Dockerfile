@@ -25,4 +25,4 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 EXPOSE 4100
 ENV PORT=4100
-CMD ["sh", "-c", "npx --yes prisma db push --skip-generate && npm start"]
+CMD ["sh", "-c", "npx --yes prisma migrate deploy && npm start"]
