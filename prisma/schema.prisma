@@ -1,0 +1,68 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String?
+  createdAt     DateTime       @default(now())
+  googleAccount GoogleAccount?
+  slackAccount  SlackAccount?
+  settings      Settings?
+}
+
+model GoogleAccount {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  calendarId   String    @default("primary")
+  email        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model SlackAccount {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String
+  slackUserId String
+  teamId      String
+  teamName    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Settings {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enableSync           Boolean  @default(true)
+  clearStatusOnEnd     Boolean  @default(true)
+  respectManualStatus  Boolean  @default(true)
+  muteDnd              Boolean  @default(false)
+  regularEventsEnabled Boolean  @default(true)
+  regularEventsEmoji   String   @default("🧑‍💻")
+  focusTimeEnabled     Boolean  @default(true)
+  focusTimeEmoji       String   @default("🎯")
+  outOfOfficeEnabled   Boolean  @default(true)
+  outOfOfficeEmoji     String   @default("🌴")
+  workStartTime        String   @default("09:00")
+  workEndTime          String   @default("18:30")
+  workingDays          String   @default("1,2,3,4,5")
+  lastSetStatusText    String?
+  lastSetEventId       String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}

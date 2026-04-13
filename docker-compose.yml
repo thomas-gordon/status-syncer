@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4100:4100"
+    environment:
+      DATABASE_URL: postgresql://statuswatcher:password@db:5432/statuswatcher
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:4100}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: statuswatcher
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: statuswatcher
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U statuswatcher"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
