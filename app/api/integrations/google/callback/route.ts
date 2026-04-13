@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL('/dashboard?error=google_auth_failed', req.url)
+      new URL('/dashboard?error=google_auth_failed', process.env.NEXTAUTH_URL)
     )
   }
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     if (!tokenResponse.ok) {
       console.error('Token exchange failed:', await tokenResponse.text())
       return NextResponse.redirect(
-        new URL('/dashboard?error=google_token_failed', req.url)
+        new URL('/dashboard?error=google_token_failed', process.env.NEXTAUTH_URL)
       )
     }
 
@@ -78,12 +78,12 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.redirect(
-      new URL('/dashboard?connected=google', req.url)
+      new URL('/dashboard?connected=google', process.env.NEXTAUTH_URL)
     )
   } catch (error) {
     console.error('Google callback error:', error)
     return NextResponse.redirect(
-      new URL('/dashboard?error=google_callback_failed', req.url)
+      new URL('/dashboard?error=google_callback_failed', process.env.NEXTAUTH_URL)
     )
   }
 }

@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL('/dashboard?error=slack_auth_failed', req.url)
+      new URL('/dashboard?error=slack_auth_failed', process.env.NEXTAUTH_URL)
     )
   }
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     if (!data.ok) {
       console.error('Slack OAuth failed:', data.error)
       return NextResponse.redirect(
-        new URL('/dashboard?error=slack_token_failed', req.url)
+        new URL('/dashboard?error=slack_token_failed', process.env.NEXTAUTH_URL)
       )
     }
 
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     if (!authedUser?.access_token || !authedUser?.id) {
       console.error('Missing authed_user data from Slack')
       return NextResponse.redirect(
-        new URL('/dashboard?error=slack_token_failed', req.url)
+        new URL('/dashboard?error=slack_token_failed', process.env.NEXTAUTH_URL)
       )
     }
 
@@ -66,12 +66,12 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.redirect(
-      new URL('/dashboard?connected=slack', req.url)
+      new URL('/dashboard?connected=slack', process.env.NEXTAUTH_URL)
     )
   } catch (error) {
     console.error('Slack callback error:', error)
     return NextResponse.redirect(
-      new URL('/dashboard?error=slack_callback_failed', req.url)
+      new URL('/dashboard?error=slack_callback_failed', process.env.NEXTAUTH_URL)
     )
   }
 }
