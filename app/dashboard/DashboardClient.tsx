@@ -84,7 +84,9 @@ export default function DashboardClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      if (!response.ok) {
+      if (response.ok) {
+        showToast('Settings saved', 'success')
+      } else {
         showToast('Failed to save settings', 'error')
       }
     } catch {
@@ -223,12 +225,6 @@ export default function DashboardClient({
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-stone-800">Dashboard</h1>
           <div className="flex items-center gap-4">
-            <a
-              href="#"
-              className="text-sm text-stone-500 hover:text-stone-700"
-            >
-              Manage Billing
-            </a>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
               className="text-sm text-stone-500 hover:text-stone-700"

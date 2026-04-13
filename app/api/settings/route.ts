@@ -3,8 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
+  console.log('Settings GET - session:', JSON.stringify(session))
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,6 +31,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions)
+  console.log('Settings PUT - session:', JSON.stringify(session))
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
