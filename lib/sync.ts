@@ -84,7 +84,17 @@ export async function syncUser(userId: string): Promise<void> {
     }
 
     // Get current calendar events
-    const events = await getCurrentEvents(userId)
+    let events = await getCurrentEvents(userId)
+
+    // Handle private events per user setting
+    if (settings.privateEventMode === 'ignore') {
+      events = events.filter((e) => e.visibility !== 'private')
+    } else {
+      // mask: replace title with "Busy" for private events
+      events = events.map((e) =>
+        e.visibility === 'private' ? { ...e, summary: 'Busy' } : e
+      )
+    }
 
     if (events.length === 0) {
       // No current events — clear status if clearStatusOnEnd and we set it

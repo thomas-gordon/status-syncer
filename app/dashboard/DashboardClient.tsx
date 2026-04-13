@@ -17,6 +17,7 @@ export interface SettingsData {
   workStartTime: string
   workEndTime: string
   workingDays: string
+  privateEventMode: string
 }
 
 interface Props {
@@ -441,6 +442,44 @@ export default function DashboardClient({
               onEmojiInputChange={setEmojiInputValue}
               onCommitEmojiEdit={commitEmojiEdit}
             />
+          </div>
+        </div>
+
+        {/* Event Handling */}
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+          <h2 className="text-sm font-semibold text-stone-800 mb-4">Event Handling</h2>
+          <div className="bg-stone-50 border border-stone-200 rounded-lg p-4">
+            <p className="text-sm font-medium text-stone-700 mb-3">Private Events</p>
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="privateEventMode"
+                  value="mask"
+                  checked={settings.privateEventMode === 'mask'}
+                  onChange={() => updateSetting('privateEventMode', 'mask')}
+                  className="mt-0.5 text-red-500 focus:ring-stone-400"
+                />
+                <div>
+                  <p className="text-sm font-medium text-stone-700">Mask</p>
+                  <p className="text-xs text-stone-400">Show private events as &ldquo;Busy&rdquo;</p>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="privateEventMode"
+                  value="ignore"
+                  checked={settings.privateEventMode === 'ignore'}
+                  onChange={() => updateSetting('privateEventMode', 'ignore')}
+                  className="mt-0.5 text-red-500 focus:ring-stone-400"
+                />
+                <div>
+                  <p className="text-sm font-medium text-stone-700">Ignore</p>
+                  <p className="text-xs text-stone-400">Don&apos;t sync private events</p>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
 

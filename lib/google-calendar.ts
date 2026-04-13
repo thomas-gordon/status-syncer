@@ -14,6 +14,7 @@ interface CalendarEvent {
   end: { dateTime?: string; date?: string }
   eventType?: string
   status?: string
+  visibility?: string
 }
 
 export async function refreshAccessToken(userId: string): Promise<string | null> {

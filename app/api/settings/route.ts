@@ -55,6 +55,7 @@ export async function PUT(req: NextRequest) {
       'workStartTime',
       'workEndTime',
       'workingDays',
+      'privateEventMode',
     ]
 
     const updateData: Record<string, unknown> = {}

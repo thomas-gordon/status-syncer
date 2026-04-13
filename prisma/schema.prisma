@@ -61,6 +61,7 @@ model Settings {
   workStartTime        String   @default("09:00")
   workEndTime          String   @default("18:30")
   workingDays          String   @default("1,2,3,4,5")
+  privateEventMode     String   @default("mask") // "mask" or "ignore"
   lastSetStatusText    String?
   lastSetEventId       String?
   createdAt            DateTime @default(now())
