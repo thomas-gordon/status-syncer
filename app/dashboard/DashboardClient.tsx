@@ -17,6 +17,7 @@ export interface SettingsData {
   workStartTime: string
   workEndTime: string
   workingDays: string
+  timezone: string
   privateEventMode: string
 }
 
@@ -30,6 +31,22 @@ interface Props {
   connectionMessage?: string
   errorMessage?: string
 }
+
+const TIMEZONES =
+  typeof Intl.supportedValuesOf === 'function'
+    ? Intl.supportedValuesOf('timeZone')
+    : [
+        'Australia/Melbourne',
+        'Australia/Sydney',
+        'Australia/Perth',
+        'Europe/London',
+        'Europe/Berlin',
+        'America/New_York',
+        'America/Los_Angeles',
+        'Asia/Tokyo',
+        'Asia/Singapore',
+        'UTC',
+      ]
 
 const DAY_LABELS = [
   { value: '1', label: 'Mon' },
@@ -502,6 +519,21 @@ export default function DashboardClient({
         {/* Working Hours */}
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
           <h2 className="text-sm font-semibold text-stone-800 mb-4">Working Hours</h2>
+          <div className="mb-4">
+            <label className="text-xs text-stone-500 block mb-1">Timezone</label>
+            <select
+              value={settings.timezone}
+              onChange={(e) => updateSetting('timezone', e.target.value)}
+              className="text-sm border border-stone-300 rounded-lg px-2 py-1.5 w-full focus:outline-none focus:ring-2 focus:ring-stone-400"
+            >
+              <option value="">Use server default</option>
+              {TIMEZONES.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center gap-2">
               <label className="text-xs text-stone-500">Start</label>

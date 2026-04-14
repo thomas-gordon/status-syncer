@@ -15,10 +15,29 @@ function timeToMinutes(time: string): number {
 function isWithinWorkingHours(
   workStartTime: string,
   workEndTime: string,
-  workingDays: string
+  workingDays: string,
+  timezone: string | null
 ): boolean {
   const now = new Date()
-  const dayOfWeek = now.getDay() // 0 = Sunday, 1 = Monday...
+  const tz = timezone || process.env.TZ || 'UTC'
+
+  // Format current time in the target timezone to extract day/hour/minute
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now)
+
+  const weekdayStr = parts.find((p) => p.type === 'weekday')?.value || ''
+  const hourStr = parts.find((p) => p.type === 'hour')?.value || '0'
+  const minuteStr = parts.find((p) => p.type === 'minute')?.value || '0'
+
+  const dayMap: Record<string, number> = {
+    Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+  }
+  const dayOfWeek = dayMap[weekdayStr] ?? new Date().getDay()
 
   const enabledDays = workingDays
     .split(',')
@@ -28,7 +47,9 @@ function isWithinWorkingHours(
     return false
   }
 
-  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  // Intl may format midnight as "24" in some locales; coerce to 0
+  const hour = parseInt(hourStr, 10) % 24
+  const currentMinutes = hour * 60 + parseInt(minuteStr, 10)
   const startMinutes = timeToMinutes(workStartTime)
   const endMinutes = timeToMinutes(workEndTime)
 
@@ -66,7 +87,8 @@ export async function syncUser(userId: string): Promise<void> {
       !isWithinWorkingHours(
         settings.workStartTime,
         settings.workEndTime,
-        settings.workingDays
+        settings.workingDays,
+        settings.timezone
       )
     ) {
       // Outside working hours — clear status if we set one

@@ -51,6 +51,7 @@ export default async function DashboardPage({
     workStartTime: '09:00',
     workEndTime: '18:30',
     workingDays: '1,2,3,4,5',
+    timezone: null as string | null,
     privateEventMode: 'mask',
   }
 
@@ -98,6 +99,7 @@ export default async function DashboardPage({
         workStartTime: settings.workStartTime,
         workEndTime: settings.workEndTime,
         workingDays: settings.workingDays,
+        timezone: settings.timezone ?? '',
         privateEventMode: settings.privateEventMode,
       }}
       connectionMessage={connectionMessage}

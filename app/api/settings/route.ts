@@ -55,13 +55,19 @@ export async function PUT(req: NextRequest) {
       'workStartTime',
       'workEndTime',
       'workingDays',
+      'timezone',
       'privateEventMode',
     ]
 
     const updateData: Record<string, unknown> = {}
     for (const field of allowedFields) {
       if (field in body) {
-        updateData[field] = body[field]
+        let value = body[field]
+        // Coerce empty string to null for the nullable timezone field
+        if (field === 'timezone' && value === '') {
+          value = null
+        }
+        updateData[field] = value
       }
     }
 
