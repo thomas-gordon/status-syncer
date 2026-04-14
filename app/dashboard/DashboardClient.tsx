@@ -166,9 +166,7 @@ export default function DashboardClient({
   }
 
   function commitEmojiEdit(field: keyof SettingsData) {
-    if (emojiInputValue.trim()) {
-      updateSetting(field, emojiInputValue.trim())
-    }
+    updateSetting(field, emojiInputValue.trim())
     setEditingEmoji(null)
   }
 
@@ -698,7 +696,7 @@ function EventTypeRow({
             className="w-12 h-12 flex flex-col items-center justify-center border border-stone-200 rounded-lg bg-stone-50 hover:bg-stone-100 transition-colors group"
             title="Click to change emoji"
           >
-            <span className="text-xl leading-none">{emoji}</span>
+            <span className="text-xl leading-none">{emoji || <span className="text-xs text-stone-300">none</span>}</span>
             <span className="text-[9px] text-stone-400 group-hover:text-stone-500 mt-0.5">
               change
             </span>
