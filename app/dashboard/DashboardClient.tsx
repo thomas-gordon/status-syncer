@@ -27,6 +27,7 @@ interface Props {
   googleEmail: string | null
   isSlackConnected: boolean
   slackTeamName: string | null
+  serverTimezone: string
   initialSettings: SettingsData
   connectionMessage?: string
   errorMessage?: string
@@ -64,6 +65,7 @@ export default function DashboardClient({
   googleEmail,
   isSlackConnected,
   slackTeamName,
+  serverTimezone,
   initialSettings,
   connectionMessage,
   errorMessage,
@@ -526,7 +528,7 @@ export default function DashboardClient({
               onChange={(e) => updateSetting('timezone', e.target.value)}
               className="text-sm border border-stone-300 rounded-lg px-2 py-1.5 w-full focus:outline-none focus:ring-2 focus:ring-stone-400"
             >
-              <option value="">Use server default</option>
+              <option value="">{serverTimezone} (server default)</option>
               {TIMEZONES.map((tz) => (
                 <option key={tz} value={tz}>
                   {tz}

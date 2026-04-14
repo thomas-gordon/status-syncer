@@ -85,6 +85,7 @@ export default async function DashboardPage({
       googleEmail={user.googleAccount?.email ?? null}
       isSlackConnected={!!user.slackAccount}
       slackTeamName={user.slackAccount?.teamName ?? null}
+      serverTimezone={process.env.TZ || 'UTC'}
       initialSettings={{
         enableSync: settings.enableSync,
         clearStatusOnEnd: settings.clearStatusOnEnd,
