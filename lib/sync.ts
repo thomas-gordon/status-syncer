@@ -143,9 +143,14 @@ export async function syncUser(userId: string): Promise<void> {
       return 1
     }
 
-    const sortedEvents = [...events].sort(
-      (a, b) => getPriority(b.eventType) - getPriority(a.eventType)
-    )
+    const sortedEvents = [...events].sort((a, b) => {
+      const pDiff = getPriority(b.eventType) - getPriority(a.eventType)
+      if (pDiff !== 0) return pDiff
+      // Same priority — prefer the most recently started event
+      const aStart = new Date(a.start?.dateTime || a.start?.date || '0').getTime()
+      const bStart = new Date(b.start?.dateTime || b.start?.date || '0').getTime()
+      return bStart - aStart
+    })
 
     // Find the best event to sync
     let selectedEvent = null

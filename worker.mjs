@@ -120,13 +120,20 @@ async function syncUser(userId) {
     return
   }
 
-  // Priority sort
+  // Sort by: priority (desc), then most recently started (desc)
   const getPriority = (et) => {
     if (et === 'outOfOffice') return 3
     if (et === 'focusTime') return 2
     return 1
   }
-  const sorted = [...events].sort((a, b) => getPriority(b.eventType) - getPriority(a.eventType))
+  const sorted = [...events].sort((a, b) => {
+    const pDiff = getPriority(b.eventType) - getPriority(a.eventType)
+    if (pDiff !== 0) return pDiff
+    // Same priority — prefer the most recently started event
+    const aStart = new Date(a.start?.dateTime || a.start?.date || 0).getTime()
+    const bStart = new Date(b.start?.dateTime || b.start?.date || 0).getTime()
+    return bStart - aStart
+  })
 
   let selectedEvent = null
   let selectedEmoji = settings.regularEventsEmoji

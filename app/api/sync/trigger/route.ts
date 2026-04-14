@@ -131,10 +131,14 @@ export async function POST(req: NextRequest) {
     for (const e of events) {
       const isWorkingLocation = e.eventType === 'workingLocation'
       const isPrivateFiltered = settings.privateEventMode === 'ignore' && e.visibility === 'private'
+      const startStr = e.start?.dateTime || e.start?.date || ''
+      const endStr = e.end?.dateTime || e.end?.date || ''
+      const startTime = startStr ? new Date(startStr).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', timeZone: tz }) : '?'
+      const endTime = endStr ? new Date(endStr).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', timeZone: tz }) : '?'
       let suffix = ''
       if (isWorkingLocation) suffix = ' — FILTERED (workingLocation)'
       else if (isPrivateFiltered) suffix = ' — FILTERED (private, ignore mode)'
-      log.push(`ℹ️  Event: "${e.summary || '(no title)'}" [${e.eventType || 'default'}]${suffix}`)
+      log.push(`ℹ️  Event: "${e.summary || '(no title)'}" [${e.eventType || 'default'}] ${startTime}–${endTime}${suffix}`)
     }
 
     // Filter out working location events and apply private event filter
@@ -154,21 +158,31 @@ export async function POST(req: NextRequest) {
       if (eventType === 'focusTime') return 2
       return 1
     }
-    const sortedEvents = [...filtered].sort((a, b) => getPriority(b.eventType) - getPriority(a.eventType))
+    const sortedEvents = [...filtered].sort((a, b) => {
+      const pDiff = getPriority(b.eventType) - getPriority(a.eventType)
+      if (pDiff !== 0) return pDiff
+      const aStart = new Date(a.start?.dateTime || a.start?.date || '0').getTime()
+      const bStart = new Date(b.start?.dateTime || b.start?.date || '0').getTime()
+      return bStart - aStart
+    })
+
+    if (sortedEvents.length > 1) {
+      log.push(`ℹ️  ${sortedEvents.length} overlapping events — selecting by priority, then most recently started`)
+    }
 
     let selectedEvent = null
     for (const event of sortedEvents) {
       const et = event.eventType
       if (et === 'outOfOffice' && !settings.outOfOfficeEnabled) {
-        log.push(`   Skipping outOfOffice event (disabled in settings)`)
+        log.push(`   ⏭ "${event.summary}" — skipped (outOfOffice disabled)`)
         continue
       }
       if (et === 'focusTime' && !settings.focusTimeEnabled) {
-        log.push(`   Skipping focusTime event (disabled in settings)`)
+        log.push(`   ⏭ "${event.summary}" — skipped (focusTime disabled)`)
         continue
       }
       if (et !== 'outOfOffice' && et !== 'focusTime' && !settings.regularEventsEnabled) {
-        log.push(`   Skipping regular event (disabled in settings)`)
+        log.push(`   ⏭ "${event.summary}" — skipped (regular events disabled)`)
         continue
       }
       selectedEvent = event
