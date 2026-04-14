@@ -108,6 +108,9 @@ export async function syncUser(userId: string): Promise<void> {
     // Get current calendar events
     let events = await getCurrentEvents(userId)
 
+    // Filter out working location events (e.g. "Home", "Office")
+    events = events.filter((e) => e.eventType !== 'workingLocation')
+
     // Handle private events per user setting
     if (settings.privateEventMode === 'ignore') {
       events = events.filter((e) => e.visibility !== 'private')
@@ -200,6 +203,8 @@ export async function syncUser(userId: string): Promise<void> {
         return
       }
     }
+
+    console.log(`[sync] Setting status for user ${userId}: "${selectedEvent.summary}" [${selectedEvent.eventType || 'default'}]`)
 
     const eventTitle = selectedEvent.summary || 'Meeting'
     const endStr =
