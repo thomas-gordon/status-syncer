@@ -58,10 +58,27 @@ export async function POST(req: NextRequest) {
     }
     log.push('✅ Google access token is valid')
 
-    // Check working hours
+    // Check working hours using user's timezone
     const now = new Date()
-    const dayOfWeek = now.getDay()
-    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    const tz = settings.timezone || process.env.TZ || 'UTC'
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(now)
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+    const weekdayStr = parts.find((p) => p.type === 'weekday')?.value || ''
+    const hourStr = parts.find((p) => p.type === 'hour')?.value || '0'
+    const minuteStr = parts.find((p) => p.type === 'minute')?.value || '0'
+    const dayOfWeek = dayMap[weekdayStr] ?? now.getDay()
+    const hour = parseInt(hourStr, 10) % 24
+    const minute = parseInt(minuteStr, 10)
+    const currentMinutes = hour * 60 + minute
+
     const enabledDays = settings.workingDays.split(',').map((d) => parseInt(d.trim(), 10))
     const [startH, startM] = settings.workStartTime.split(':').map(Number)
     const [endH, endM] = settings.workEndTime.split(':').map(Number)
@@ -69,8 +86,7 @@ export async function POST(req: NextRequest) {
     const endMinutes = endH * 60 + endM
     const inWorkingHours = enabledDays.includes(dayOfWeek) && currentMinutes >= startMinutes && currentMinutes < endMinutes
 
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    log.push(`ℹ️  Current time: ${dayNames[dayOfWeek]} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} (server time, UTC offset: ${-now.getTimezoneOffset() / 60})`)
+    log.push(`ℹ️  Current time: ${dayNames[dayOfWeek]} ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} (timezone: ${tz})`)
     log.push(`ℹ️  Working hours: ${settings.workStartTime}–${settings.workEndTime} on days [${enabledDays.map((d) => dayNames[d]).join(', ')}]`)
 
     if (!inWorkingHours) {
@@ -113,12 +129,16 @@ export async function POST(req: NextRequest) {
     }
 
     for (const e of events) {
-      const filtered = settings.privateEventMode === 'ignore' && e.visibility === 'private'
-      log.push(`ℹ️  Event: "${e.summary || '(no title)'}" [${e.eventType || 'default'}]${filtered ? ' — FILTERED (private, ignore mode)' : ''}`)
+      const isWorkingLocation = e.eventType === 'workingLocation'
+      const isPrivateFiltered = settings.privateEventMode === 'ignore' && e.visibility === 'private'
+      let suffix = ''
+      if (isWorkingLocation) suffix = ' — FILTERED (workingLocation)'
+      else if (isPrivateFiltered) suffix = ' — FILTERED (private, ignore mode)'
+      log.push(`ℹ️  Event: "${e.summary || '(no title)'}" [${e.eventType || 'default'}]${suffix}`)
     }
 
-    // Apply private event filter
-    let filtered = events
+    // Filter out working location events and apply private event filter
+    let filtered = events.filter((e) => e.eventType !== 'workingLocation')
     if (settings.privateEventMode === 'ignore') {
       filtered = filtered.filter((e) => e.visibility !== 'private')
     }
