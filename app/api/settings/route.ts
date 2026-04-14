@@ -57,14 +57,17 @@ export async function PUT(req: NextRequest) {
       'workingDays',
       'timezone',
       'privateEventMode',
+      'statusSource',
+      'lastfmUsername',
+      'musicEmoji',
     ]
 
     const updateData: Record<string, unknown> = {}
     for (const field of allowedFields) {
       if (field in body) {
         let value = body[field]
-        // Coerce empty string to null for the nullable timezone field
-        if (field === 'timezone' && value === '') {
+        // Coerce empty strings to null for nullable fields
+        if ((field === 'timezone' || field === 'lastfmUsername') && value === '') {
           value = null
         }
         updateData[field] = value

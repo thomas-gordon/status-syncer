@@ -90,71 +90,133 @@ async function syncUser(userId) {
     return
   }
 
-  // Refresh Google token if needed
-  const accessToken = await refreshGoogleToken(userId)
-  if (!accessToken) return
+  // Determine what status to set based on status source
+  const source = settings.statusSource || 'calendar'
+  let statusText = null
+  let statusEmoji = null
+  let statusExpiration = 0
+  let statusId = null // used for dedup
 
-  // Fetch current events
-  let events = await fetchCurrentEvents(accessToken, user.googleAccount.calendarId || 'primary')
+  // --- Calendar logic ---
+  async function getCalendarStatus() {
+    if (!user.googleAccount) return null
 
-  // Filter working location events
-  events = events.filter((e) => e.eventType !== 'workingLocation')
+    const accessToken = await refreshGoogleToken(userId)
+    if (!accessToken) return null
 
-  // Handle private events
-  if (settings.privateEventMode === 'ignore') {
-    events = events.filter((e) => e.visibility !== 'private')
-  } else {
-    events = events.map((e) =>
-      e.visibility === 'private' ? { ...e, summary: 'Busy' } : e
-    )
-  }
+    let events = await fetchCurrentEvents(accessToken, user.googleAccount.calendarId || 'primary')
+    events = events.filter((e) => e.eventType !== 'workingLocation')
 
-  if (events.length === 0) {
-    if (settings.clearStatusOnEnd && settings.lastSetStatusText) {
-      await clearSlackStatus(user.slackAccount.accessToken)
-      await prisma.settings.update({
-        where: { userId },
-        data: { lastSetStatusText: null, lastSetEventId: null },
-      })
-    }
-    return
-  }
-
-  // Sort by: priority (desc), then most recently started (desc)
-  const getPriority = (et) => {
-    if (et === 'outOfOffice') return 3
-    if (et === 'focusTime') return 2
-    return 1
-  }
-  const sorted = [...events].sort((a, b) => {
-    const pDiff = getPriority(b.eventType) - getPriority(a.eventType)
-    if (pDiff !== 0) return pDiff
-    // Same priority — prefer the most recently started event
-    const aStart = new Date(a.start?.dateTime || a.start?.date || 0).getTime()
-    const bStart = new Date(b.start?.dateTime || b.start?.date || 0).getTime()
-    return bStart - aStart
-  })
-
-  let selectedEvent = null
-  let selectedEmoji = settings.regularEventsEmoji
-
-  for (const event of sorted) {
-    const et = event.eventType
-    if (et === 'outOfOffice') {
-      if (!settings.outOfOfficeEnabled) continue
-      selectedEmoji = settings.outOfOfficeEmoji
-    } else if (et === 'focusTime') {
-      if (!settings.focusTimeEnabled) continue
-      selectedEmoji = settings.focusTimeEmoji
+    if (settings.privateEventMode === 'ignore') {
+      events = events.filter((e) => e.visibility !== 'private')
     } else {
-      if (!settings.regularEventsEnabled) continue
-      selectedEmoji = settings.regularEventsEmoji
+      events = events.map((e) =>
+        e.visibility === 'private' ? { ...e, summary: 'Busy' } : e
+      )
     }
-    selectedEvent = event
-    break
+
+    if (events.length === 0) return null
+
+    const getPriority = (et) => {
+      if (et === 'outOfOffice') return 3
+      if (et === 'focusTime') return 2
+      return 1
+    }
+    const sorted = [...events].sort((a, b) => {
+      const pDiff = getPriority(b.eventType) - getPriority(a.eventType)
+      if (pDiff !== 0) return pDiff
+      const aStart = new Date(a.start?.dateTime || a.start?.date || 0).getTime()
+      const bStart = new Date(b.start?.dateTime || b.start?.date || 0).getTime()
+      return bStart - aStart
+    })
+
+    let selectedEvent = null
+    let selectedEmoji = settings.regularEventsEmoji
+
+    for (const event of sorted) {
+      const et = event.eventType
+      if (et === 'outOfOffice') {
+        if (!settings.outOfOfficeEnabled) continue
+        selectedEmoji = settings.outOfOfficeEmoji
+      } else if (et === 'focusTime') {
+        if (!settings.focusTimeEnabled) continue
+        selectedEmoji = settings.focusTimeEmoji
+      } else {
+        if (!settings.regularEventsEnabled) continue
+        selectedEmoji = settings.regularEventsEmoji
+      }
+      selectedEvent = event
+      break
+    }
+
+    if (!selectedEvent) return null
+
+    const endStr = selectedEvent.end?.dateTime || selectedEvent.end?.date
+    const endTime = endStr ? new Date(endStr) : null
+
+    return {
+      text: selectedEvent.summary || 'Meeting',
+      emoji: selectedEmoji,
+      expiration: endTime ? Math.floor(endTime.getTime() / 1000) : 0,
+      id: `cal:${selectedEvent.id}`,
+      endTime,
+    }
   }
 
-  if (!selectedEvent) {
+  // --- Last.fm logic ---
+  async function getMusicStatus() {
+    if (!settings.lastfmUsername || !process.env.LASTFM_API_KEY) return null
+
+    const track = await fetchNowPlaying(settings.lastfmUsername)
+    if (!track) return null
+
+    const text = `${track.name} — ${track.artist}`
+    return {
+      text,
+      emoji: settings.musicEmoji || '',
+      expiration: 0, // no expiration for music — we clear when stopped
+      id: `music:${track.name}:${track.artist}`,
+      endTime: null,
+    }
+  }
+
+  // Resolve status based on source mode
+  if (source === 'calendar') {
+    const cal = await getCalendarStatus()
+    if (cal) {
+      statusText = cal.text
+      statusEmoji = cal.emoji
+      statusExpiration = cal.expiration
+      statusId = cal.id
+    }
+  } else if (source === 'music') {
+    const music = await getMusicStatus()
+    if (music) {
+      statusText = music.text
+      statusEmoji = music.emoji
+      statusExpiration = music.expiration
+      statusId = music.id
+    }
+  } else if (source === 'calendar_music') {
+    const cal = await getCalendarStatus()
+    if (cal) {
+      statusText = cal.text
+      statusEmoji = cal.emoji
+      statusExpiration = cal.expiration
+      statusId = cal.id
+    } else {
+      const music = await getMusicStatus()
+      if (music) {
+        statusText = music.text
+        statusEmoji = music.emoji
+        statusExpiration = music.expiration
+        statusId = music.id
+      }
+    }
+  }
+
+  // No status to set — clear if needed
+  if (!statusText) {
     if (settings.clearStatusOnEnd && settings.lastSetStatusText) {
       await clearSlackStatus(user.slackAccount.accessToken)
       await prisma.settings.update({
@@ -165,8 +227,8 @@ async function syncUser(userId) {
     return
   }
 
-  // Skip if same event already set
-  if (settings.lastSetEventId === selectedEvent.id) return
+  // Skip if same status already set
+  if (settings.lastSetEventId === statusId) return
 
   // Respect manual status
   if (settings.respectManualStatus && settings.lastSetStatusText) {
@@ -176,33 +238,31 @@ async function syncUser(userId) {
     }
   }
 
-  const eventTitle = selectedEvent.summary || 'Meeting'
-  const endStr = selectedEvent.end?.dateTime || selectedEvent.end?.date
-  const endTime = endStr ? new Date(endStr) : null
-  const expirationUnix = endTime ? Math.floor(endTime.getTime() / 1000) : 0
-
-  console.log(`[worker] Setting status: "${eventTitle}" for user ${userId}`)
+  console.log(`[worker] Setting status: "${statusText}" for user ${userId}`)
 
   const success = await setSlackStatus(
     user.slackAccount.accessToken,
-    eventTitle,
-    selectedEmoji,
-    expirationUnix
+    statusText,
+    statusEmoji,
+    statusExpiration
   )
 
   if (!success) return
 
-  // DND
-  if (settings.muteDnd && endTime) {
-    const remainingMinutes = Math.ceil((endTime.getTime() - now.getTime()) / (1000 * 60))
-    if (remainingMinutes > 0) {
-      await setDnd(user.slackAccount.accessToken, remainingMinutes)
+  // DND (only for calendar events with end times)
+  if (settings.muteDnd && statusId?.startsWith('cal:')) {
+    const cal = await getCalendarStatus()
+    if (cal?.endTime) {
+      const remainingMinutes = Math.ceil((cal.endTime.getTime() - now.getTime()) / (1000 * 60))
+      if (remainingMinutes > 0) {
+        await setDnd(user.slackAccount.accessToken, remainingMinutes)
+      }
     }
   }
 
   await prisma.settings.update({
     where: { userId },
-    data: { lastSetStatusText: eventTitle, lastSetEventId: selectedEvent.id },
+    data: { lastSetStatusText: statusText, lastSetEventId: statusId },
   })
 }
 
@@ -308,6 +368,44 @@ async function fetchCurrentEvents(accessToken, calendarId) {
     if (!startStr || !endStr) return false
     return new Date(startStr) <= now && now < new Date(endStr)
   }).filter((e) => e.status !== 'cancelled')
+}
+
+// --- Last.fm helpers ---
+
+async function fetchNowPlaying(username) {
+  try {
+    const params = new URLSearchParams({
+      method: 'user.getrecenttracks',
+      user: username,
+      api_key: process.env.LASTFM_API_KEY,
+      format: 'json',
+      limit: '1',
+    })
+
+    const resp = await fetch(`https://ws.audioscrobbler.com/2.0/?${params}`)
+    if (!resp.ok) {
+      console.error('[worker] Last.fm API error:', resp.status)
+      return null
+    }
+
+    const data = await resp.json()
+    const tracks = data?.recenttracks?.track
+    if (!tracks || tracks.length === 0) return null
+
+    const track = tracks[0]
+    // Check if currently playing (not just recently played)
+    const isNowPlaying = track['@attr']?.nowplaying === 'true'
+    if (!isNowPlaying) return null
+
+    return {
+      name: track.name || 'Unknown Track',
+      artist: track.artist?.['#text'] || track.artist || 'Unknown Artist',
+      album: track.album?.['#text'] || '',
+    }
+  } catch (err) {
+    console.error('[worker] Last.fm fetch error:', err)
+    return null
+  }
 }
 
 // --- Main loop ---

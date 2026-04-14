@@ -63,6 +63,9 @@ model Settings {
   workingDays          String   @default("1,2,3,4,5")
   timezone             String?  // IANA zone, e.g. "Australia/Melbourne"; null = use server TZ
   privateEventMode     String   @default("mask") // "mask" or "ignore"
+  statusSource         String   @default("calendar") // "calendar", "music", "calendar_music"
+  lastfmUsername       String?
+  musicEmoji           String   @default("🎵")
   lastSetStatusText    String?
   lastSetEventId       String?
   createdAt            DateTime @default(now())

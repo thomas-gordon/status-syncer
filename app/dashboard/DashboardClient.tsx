@@ -19,6 +19,9 @@ export interface SettingsData {
   workingDays: string
   timezone: string
   privateEventMode: string
+  statusSource: string
+  lastfmUsername: string
+  musicEmoji: string
 }
 
 interface Props {
@@ -399,6 +402,80 @@ export default function DashboardClient({
               </button>
             </div>
           )}
+        </div>
+
+        {/* Status Source */}
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+          <h2 className="text-sm font-semibold text-stone-800 mb-4">Status Source</h2>
+          <div className="space-y-3">
+            <div>
+              <select
+                value={settings.statusSource}
+                onChange={(e) => updateSetting('statusSource', e.target.value)}
+                className="text-sm border border-stone-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-stone-400"
+              >
+                <option value="calendar">Google Calendar only</option>
+                <option value="music">Last.fm / Music only</option>
+                <option value="calendar_music">Calendar with music fallback</option>
+              </select>
+              <p className="text-xs text-stone-400 mt-1">
+                {settings.statusSource === 'calendar' && 'Status updates from your Google Calendar events'}
+                {settings.statusSource === 'music' && 'Status shows what you\'re currently listening to via Last.fm'}
+                {settings.statusSource === 'calendar_music' && 'Shows calendar events when active, otherwise what you\'re listening to'}
+              </p>
+            </div>
+
+            {(settings.statusSource === 'music' || settings.statusSource === 'calendar_music') && (
+              <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm">🎵</span>
+                  <h3 className="text-sm font-medium text-stone-700">Last.fm</h3>
+                </div>
+                <div>
+                  <label className="text-xs text-stone-500 block mb-1">Last.fm Username</label>
+                  <input
+                    type="text"
+                    value={settings.lastfmUsername}
+                    onChange={(e) => updateSetting('lastfmUsername', e.target.value)}
+                    placeholder="your-lastfm-username"
+                    className="text-sm border border-stone-300 rounded-lg px-3 py-1.5 w-full focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  />
+                  <p className="text-xs text-stone-400 mt-1">
+                    Enable scrobbling in your music app (Tidal, Spotify, etc.) to Last.fm
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div>
+                    <label className="text-xs text-stone-500 block mb-1">Music emoji</label>
+                    {editingEmoji === 'musicEmoji' ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        value={emojiInputValue}
+                        onChange={(e) => setEmojiInputValue(e.target.value)}
+                        onBlur={() => commitEmojiEdit('musicEmoji')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === 'Escape') {
+                            commitEmojiEdit('musicEmoji')
+                          }
+                        }}
+                        className="w-16 text-center text-xl border border-stone-300 rounded-lg px-1 py-1 focus:outline-none focus:ring-2 focus:ring-stone-400"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => startEmojiEdit('musicEmoji', settings.musicEmoji)}
+                        className="w-12 h-12 flex flex-col items-center justify-center border border-stone-200 rounded-lg bg-white hover:bg-stone-100 transition-colors group"
+                        title="Click to change emoji"
+                      >
+                        <span className="text-xl leading-none">{settings.musicEmoji || <span className="text-xs text-stone-300">none</span>}</span>
+                        <span className="text-[9px] text-stone-400 group-hover:text-stone-500 mt-0.5">change</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Sync Settings */}

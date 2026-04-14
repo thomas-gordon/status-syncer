@@ -12,6 +12,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       SLACK_CLIENT_ID: ${SLACK_CLIENT_ID}
       SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET}
+      LASTFM_API_KEY: ${LASTFM_API_KEY}
     depends_on:
       db:
         condition: service_healthy

@@ -53,6 +53,9 @@ export default async function DashboardPage({
     workingDays: '1,2,3,4,5',
     timezone: null as string | null,
     privateEventMode: 'mask',
+    statusSource: 'calendar',
+    lastfmUsername: null as string | null,
+    musicEmoji: '🎵',
   }
 
   let connectionMessage: string | undefined
@@ -102,6 +105,9 @@ export default async function DashboardPage({
         workingDays: settings.workingDays,
         timezone: settings.timezone ?? '',
         privateEventMode: settings.privateEventMode,
+        statusSource: settings.statusSource,
+        lastfmUsername: settings.lastfmUsername ?? '',
+        musicEmoji: settings.musicEmoji,
       }}
       connectionMessage={connectionMessage}
       errorMessage={errorMessage}
