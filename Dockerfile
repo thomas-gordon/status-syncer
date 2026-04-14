@@ -23,6 +23,7 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/worker.mjs ./worker.mjs
 EXPOSE 4100
 ENV PORT=4100
-CMD ["sh", "-c", "npx --yes prisma migrate deploy && npm start"]
+CMD ["sh", "-c", "npx --yes prisma migrate deploy && node worker.mjs & npm start"]
