@@ -55,6 +55,8 @@ export default function DashboardClient({
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [testingSlack, setTestingSlack] = useState(false)
+  const [debugLog, setDebugLog] = useState<string[] | null>(null)
+  const [runningDebug, setRunningDebug] = useState(false)
 
   // Emoji editing state
   const [editingEmoji, setEditingEmoji] = useState<string | null>(null)
@@ -193,6 +195,20 @@ export default function DashboardClient({
       showToast('Test failed', 'error')
     } finally {
       setTestingSlack(false)
+    }
+  }
+
+  async function handleDebugSync() {
+    setRunningDebug(true)
+    setDebugLog(null)
+    try {
+      const response = await fetch('/api/sync/trigger', { method: 'POST' })
+      const data = await response.json()
+      setDebugLog(data.log || ['No output'])
+    } catch {
+      setDebugLog(['Failed to run debug sync'])
+    } finally {
+      setRunningDebug(false)
     }
   }
 
@@ -526,6 +542,26 @@ export default function DashboardClient({
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Debug sync */}
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-stone-800">Debug Sync</h2>
+            <button
+              onClick={handleDebugSync}
+              disabled={runningDebug}
+              className="text-xs px-3 py-1.5 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors disabled:opacity-50"
+            >
+              {runningDebug ? 'Running...' : 'Run diagnostic'}
+            </button>
+          </div>
+          <p className="text-xs text-stone-400 mb-3">Check why events may not be syncing to your Slack status.</p>
+          {debugLog && (
+            <pre className="text-xs bg-stone-50 border border-stone-200 rounded-lg p-3 overflow-auto max-h-64 whitespace-pre-wrap font-mono text-stone-700">
+              {debugLog.join('\n')}
+            </pre>
+          )}
         </div>
 
         <p className="text-center text-xs text-stone-400 pb-4">

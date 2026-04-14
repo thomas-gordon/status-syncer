@@ -165,11 +165,14 @@ export async function syncUser(userId: string): Promise<void> {
     }
 
     // Respect manual status: if current Slack status differs from what we set,
-    // someone changed it manually — skip
+    // someone changed it manually — skip.
+    // Exception: an empty status means our previous status expired naturally
+    // (Slack cleared it at the expiry time). Don't block the new event in that case.
     if (settings.respectManualStatus && settings.lastSetStatusText) {
       const currentStatus = await getSlackStatus(user.slackAccount.accessToken)
       if (
         currentStatus &&
+        currentStatus.statusText !== '' &&
         currentStatus.statusText !== settings.lastSetStatusText
       ) {
         return
